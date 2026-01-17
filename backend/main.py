@@ -14,6 +14,8 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
+    # 1 line extra
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -132,8 +134,14 @@ def create_deck(user_id: int, payload: DeckCreate):
     row = payload.model_dump()
     row["user_id"] = user_id
     res = supabase.table("decks").insert(row).execute()
+    
     if getattr(res, "error", None):
         raise HTTPException(status_code=400, detail=str(res.error))
+    
+    # Return the first item of the list so the frontend gets an object {}
+    # instead of a list [{}]
+    if res.data and len(res.data) > 0:
+        return res.data[0] 
     return res.data
 
 @app.post("/decks/{deck_id}/cards")
