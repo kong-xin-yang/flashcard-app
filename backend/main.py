@@ -2,6 +2,8 @@ from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from supabase import create_client
 from dotenv import load_dotenv
+from typing import Optional
+from promptLLM import get_past_sentences, generate_sentence_with_history
 import os
 load_dotenv()  # loads .env into os.environ
 
@@ -30,6 +32,11 @@ class UserProfileRetrieve(BaseModel):
 
 class UserProfileRetrieveResponse(BaseModel):
     user_id: int
+
+class SentenceHistoryCreate(BaseModel):
+    language: str
+
+
 
 @app.get("/user_profiles/lookup", response_model=UserProfileRetrieveResponse)
 def retrieve_user_profile(email: str = Query(...)):
@@ -155,6 +162,58 @@ def create_card(deck_id: int, payload: CardCreate):
         raise HTTPException(status_code=400, detail=card_res.error)
     
     return card_res.data
+
+@app.post("/users/{user_id}/senses/{sense_id}/sentence_history")
+def create_sentence_history(
+    user_id: int,
+    sense_id: int,
+    payload: SentenceHistoryCreate
+):
+    # 1) Validate user exists
+    user_res = (
+        supabase.table("user_profiles")
+        .select("id")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    if not user_res.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # 2) Fetch sense (we need word + translation for OpenAI)
+    sense_res = (
+        supabase.table("senses")
+        .select("id, word, translation")
+        .eq("id", sense_id)
+        .single()
+        .execute()
+    )
+    if not sense_res.data:
+        raise HTTPException(status_code=404, detail="Sense not found")
+
+    word = sense_res.data["word"]
+    translation = sense_res.data["translation"]
+    past = get_past_sentences(user_id, sense_id)
+    sentence = generate_sentence_with_history(word, translation, payload.language, past)
+
+    # 4) Insert sentence_history (ONLY required fields)
+    ins = supabase.table("sentence_history").insert({
+        "user_id": user_id,
+        "sense_id": sense_id,
+        "sentence": sentence
+    }).execute()
+
+    if getattr(ins, "error", None):
+        raise HTTPException(status_code=400, detail=str(ins.error))
+
+    return {
+        "user_id": user_id,
+        "sense_id": sense_id,
+        "sentence": sentence
+    }
+
+
+
 
 
 
