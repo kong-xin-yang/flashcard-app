@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../services/supabase";
 import { useSession } from "../hooks/useSession";
 import { useEffect, useState } from "react";
-import { api } from "../services/api";
+import { api } from "../services/client";
 
 export default function Home() {
   const { session, user, loading } = useSession();
@@ -65,7 +65,7 @@ export default function Home() {
       <header className="sticky top-0 z-10 w-full border-b border-slate-200 bg-white">
         <div className="flex h-14 w-full items-center justify-between px-6">
           <Link to="/" className="text-lg font-semibold text-blue-600">
-            Vocario
+            Vernacular
           </Link>
 
           <nav className="flex items-center gap-3">
