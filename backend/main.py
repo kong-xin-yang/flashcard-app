@@ -23,9 +23,9 @@ class CardCreate(BaseModel):
     word: str
     translation: str
 
-@app.post("/users")
+@app.post("/userProfiles")
 def create_user(payload: UserProfileCreate):
-    res = supabase.table("users").insert(payload.model_dump()).execute()
+    res = supabase.table("userProfiles").insert(payload.model_dump()).execute()
     if getattr(res, "error", None):
         raise HTTPException(status_code=400, detail=str(res.error))
     return res.data
