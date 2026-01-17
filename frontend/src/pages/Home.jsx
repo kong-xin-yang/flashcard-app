@@ -74,21 +74,51 @@ export default function Home() {
       {/* Main content */}
       <main className="w-full px-6 py-10">
         {!loading && !session && (
-          <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
             <h1 className="text-3xl font-bold tracking-tight">
-              My collection
+              Built for students going on exchange.
             </h1>
             <p className="mt-2 text-slate-600">
-              Login or register to start.
+              Learn the words you actually need, in context.
             </p>
+
+            <div className="mt-8 grid gap-6 md:grid-cols-3">
+              <div className="rounded-xl border border-slate-200 p-5">
+                <div className="text-sm font-semibold text-blue-600">1.</div>
+                <h3 className="mt-2 font-semibold">Pick a Destination</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Tell us where you’re going so we can tailor the vocabulary to
+                  the language, region, and situations you’ll actually
+                  encounter.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-5">
+                <div className="text-sm font-semibold text-blue-600">2.</div>
+                <h3 className="mt-2 font-semibold">Build Your Vault</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Save unfamiliar words and phrases as you find them. Your vault
+                  becomes the evolving context used to teach meaning, nuance,
+                  and usage.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-5">
+                <div className="text-sm font-semibold text-blue-600">3.</div>
+                <h3 className="mt-2 font-semibold">Master the Slang</h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  Study with adaptive flashcards that generate new sentences
+                  every time you flip. Each sentence incorporates previously
+                  learned words, expanding context continuously.
+                </p>
+              </div>
+            </div>
           </div>
         )}
 
         {!loading && session && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-            <h1 className="text-2xl font-bold tracking-tight">
-              Welcome
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight">Welcome</h1>
             <p className="mt-2 text-slate-600">
               You are signed in. This area will become your flashcard app.
             </p>
