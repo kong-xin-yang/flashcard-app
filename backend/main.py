@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from supabase import create_client
 from dotenv import load_dotenv
@@ -28,9 +28,56 @@ class CardCreate(BaseModel):
 class UserProfileRetrieve(BaseModel):
     email: str
 
-@app.get("/user_profiles")
-def retrieve_user_profile(payload: UserProfileRetrieve):
-    res = supabase.table()
+class UserProfileRetrieveResponse(BaseModel):
+    user_id: int
+
+@app.get("/user_profiles/lookup", response_model=UserProfileRetrieveResponse)
+def retrieve_user_profile(email: str = Query(...)):
+    res = (
+        supabase.table("user_profiles")
+        .select("id")
+        .eq("email", email)
+        .maybe_single()
+        .execute()
+    )
+
+    if getattr(res, "error", None):
+        raise HTTPException(status_code=500, detail=str(res.error))
+
+    if res.data is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return {"user_id": res.data["id"]}
+
+@app.get("/users/{user_id}/decks")
+def get_decks_for_user(user_id: int):
+    res = (
+        supabase
+        .table("decks")
+        .select("*")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    if getattr(res, "error", None):
+        raise HTTPException(status_code=400, detail=str(res.error))
+
+    return res.data  # [] if no decks
+
+@app.get("/decks/{deck_id}/cards")
+def get_cards_for_deck(deck_id: int):
+    res = (
+        supabase
+        .table("cards")
+        .select("id, deck_id, sense_id, sense(word, translation)")
+        .eq("deck_id", deck_id)
+        .execute()
+    )
+
+    if getattr(res, "error", None):
+        raise HTTPException(status_code=400, detail=str(res.error))
+
+    return res.data  # [] if no cards
 
 @app.post("/user_profiles")
 def create_user(payload: UserProfileCreate):
@@ -60,20 +107,30 @@ def create_deck(user_id: int, payload: DeckCreate):
 @app.post("/decks/{deck_id}/cards")
 def create_card(deck_id: int, payload: CardCreate):
     sense_row = payload.model_dump()
-    sense_row["deck_id"] = deck_id
+    #sense_row["deck_id"] = deck_id
 
-    sense_res = (
-        supabase.table("sense")
+    sense_table_update_res = (
+        supabase.table("senses")
         .upsert(sense_row, on_conflict="word,translation")
-        .select("id")
-        .single()
         .execute()
     )
 
-    if getattr(sense_res, "error", None):
-        raise HTTPException(status_code=400, detail=sense_res.error)
+    if getattr(sense_table_update_res, "error", None):
+        raise HTTPException(status_code=400, detail=sense_table_update_res.error)
 
-    sense_id = sense_res.data["id"]
+    sense_select_res = (
+        supabase.table("senses")
+        .select("id")
+        .eq("word", payload.word)
+        .eq("translation", payload.translation)
+        .maybe_single()
+        .execute()
+    )
+    if getattr(sense_select_res, "error", None):
+        raise HTTPException(status_code=400, detail=sense_select_res.error)
+
+
+    sense_id = sense_select_res.data["id"]
 
     card_res = (supabase.table("cards")
     .insert({"deck_id": deck_id, "sense_id": sense_id})
