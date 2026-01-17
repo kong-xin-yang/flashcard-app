@@ -66,18 +66,32 @@ def get_decks_for_user(user_id: int):
 
 @app.get("/decks/{deck_id}/cards")
 def get_cards_for_deck(deck_id: int):
-    res = (
+    cards_res = (
         supabase
         .table("cards")
-        .select("id, deck_id, sense_id, sense(word, translation)")
+        .select("id, deck_id, sense_id")
         .eq("deck_id", deck_id)
         .execute()
     )
 
-    if getattr(res, "error", None):
-        raise HTTPException(status_code=400, detail=str(res.error))
+    if getattr(cards_res, "error", None):
+        raise HTTPException(status_code=400, detail=str(cards_res.error))
 
-    return res.data  # [] if no cards
+    cards = cards_res.data
+
+    for card in cards:
+        sense_res = (
+            supabase
+            .table("senses")
+            .select("word, translation")
+            .eq("id", card["sense_id"])
+            .single()
+            .execute()
+        )
+        card["senses"] = sense_res.data if sense_res.data else None
+
+    return cards
+
 
 @app.post("/user_profiles")
 def create_user(payload: UserProfileCreate):
