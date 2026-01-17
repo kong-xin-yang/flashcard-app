@@ -220,7 +220,7 @@ function EntryModal({ formData, setFormData, isFormValid, isSaving, onClose, onS
   );
 }
 
-// Loading screen
+// Loading screen 
 function LoadingSkeleton() {
   return (
     <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
