@@ -1,10 +1,14 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from supabase import create_client
+from dotenv import load_dotenv
+import os
+load_dotenv()  # loads .env into os.environ
 
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 app = FastAPI()
-SUPABASE_URL = "https://ddvnbnkbhboyprawsskf.supabase.com"
-SUPABASE_SERVICE_ROLE_KEY = "sb_publishable_ZLYlHydN7N7jZs2NgGRaXQ_G6F1XNmX"
+
 supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 class UserProfileCreate(BaseModel):
@@ -23,32 +27,32 @@ class CardCreate(BaseModel):
     word: str
     translation: str
 
-@app.post("/userProfiles")
+@app.post("/user_profiles")
 def create_user(payload: UserProfileCreate):
-    res = supabase.table("userProfiles").insert(payload.model_dump()).execute()
+    res = supabase.table("user_profiles").insert(payload.model_dump()).execute()
     if getattr(res, "error", None):
         raise HTTPException(status_code=400, detail=str(res.error))
     return res.data
 
-@app.post("users/{user_id}/langProfile")
+@app.post("/users/{user_id}/lang_profiles")
 def create_lang_profile(user_id: int, payload: LangProfileCreate):
     row = payload.model_dump()
     row["user_id"] = user_id
-    res = supabase.table("langProfiles").insert(row).execute()
+    res = supabase.table("lang_profiles").insert(row).execute()
     if getattr(res, "error", None):
         raise HTTPException(status_code=400, detail=str(res.error))
     return res.data
 
-@app.post("langProfile/{langProfile_id}/decks")
+@app.post("/lang_profile/{lang_profile_id}/decks")
 def create_deck(langProfile_id: int, payload: DeckCreate):
     row = payload.model_dump()
-    row["langProfile_id"] = langProfile_id
+    row["lang_profile_id"] = langProfile_id
     res = supabase.table("decks").insert(row).execute()
     if getattr(res, "error", None):
         raise HTTPException(status_code=400, detail=str(res.error))
     return res.data
 
-@app.post("decks/{deck_id}/cards")
+@app.post("/decks/{deck_id}/cards")
 def create_card(deck_id: int, payload: CardCreate):
     sense_row = payload.model_dump()
     sense_row["deck_id"] = deck_id
