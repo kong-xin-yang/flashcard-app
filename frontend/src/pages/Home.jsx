@@ -10,7 +10,10 @@ export default function Home() {
 
   useEffect(() => {
     const loadMe = async () => {
-      if (!session) return;
+      if (!session) {
+        setMe(null);
+        return;
+      }
       try {
         const res = await api.get("/me");
         setMe(res.data);
@@ -22,57 +25,88 @@ export default function Home() {
     loadMe();
   }, [session]);
 
-  if (loading) return <div className="p-6">Loading...</div>;
-
-  // Public home
-  if (!session) {
-    return (
-      <div className="min-h-screen p-6 bg-gray-50">
-        <h1 className="text-2xl font-semibold">NUS Flashcards</h1>
-        <p className="mt-2 text-gray-700">Login or register to start.</p>
-
-        <div className="mt-6 flex gap-3">
-          <Link to="/login" className="px-4 py-2 bg-black text-white rounded">
-            Login
-          </Link>
-          <Link to="/register" className="px-4 py-2 border rounded">
-            Register
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Authenticated home (app)
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded shadow">
-        <div className="flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Your Decks</h1>
-          <button
-            className="px-4 py-2 bg-black text-white rounded"
-            onClick={async () => {
-              await supabase.auth.signOut();
-            }}
-          >
-            Logout
-          </button>
-        </div>
+    <div className="min-h-screen w-full bg-slate-50 text-slate-900">
+      {/* Top bar */}
+      <header className="sticky top-0 z-10 w-full border-b border-slate-200 bg-white">
+        <div className="flex h-14 w-full items-center justify-between px-6">
+          <Link to="/" className="text-lg font-semibold text-blue-600">
+            Vocario
+          </Link>
 
-        <div className="mt-3 text-sm">
-          Signed in as: {user?.email}
+          <nav className="flex items-center gap-3">
+            {loading ? (
+              <span className="text-sm text-slate-500">Loading…</span>
+            ) : session ? (
+              <>
+                <span className="hidden text-sm text-slate-600 sm:inline">
+                  {user?.email}
+                </span>
+                <button
+                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                  }}
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-100"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Register
+                </Link>
+              </>
+            )}
+          </nav>
         </div>
+      </header>
 
-        {me && (
-          <pre className="bg-gray-100 p-3 mt-4 text-sm rounded overflow-auto">
-            {JSON.stringify(me, null, 2)}
-          </pre>
+      {/* Main content */}
+      <main className="w-full px-6 py-10">
+        {!loading && !session && (
+          <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h1 className="text-3xl font-bold tracking-tight">
+              My collection
+            </h1>
+            <p className="mt-2 text-slate-600">
+              Login or register to start.
+            </p>
+          </div>
         )}
 
-        <div className="mt-6 text-sm text-gray-600">
-          Flashcard UI goes here.
-        </div>
-      </div>
+        {!loading && session && (
+          <div className="mx-auto max-w-5xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <h1 className="text-2xl font-bold tracking-tight">
+              Welcome
+            </h1>
+            <p className="mt-2 text-slate-600">
+              You are signed in. This area will become your flashcard app.
+            </p>
+
+            {me && (
+              <pre className="mt-6 overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-800">
+                {JSON.stringify(me, null, 2)}
+              </pre>
+            )}
+          </div>
+        )}
+
+        {loading && (
+          <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
+            <span className="text-sm text-slate-600">Loading…</span>
+          </div>
+        )}
+      </main>
     </div>
   );
 }

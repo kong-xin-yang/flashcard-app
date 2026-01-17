@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -12,55 +13,109 @@ export default function Register() {
     e.preventDefault();
     setError("");
     setMessage("");
+    setBusy(true);
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: window.location.origin + "/login",
-      },
-    });
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + "/login",
+        },
+      });
 
-    if (error) {
-      setError(error.message);
-      return;
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      if (!data.session) {
+        setMessage("Check your email to confirm your account, then log in.");
+        return;
+      }
+
+      window.location.href = "/";
+    } finally {
+      setBusy(false);
     }
-
-    if (!data.session) {
-      setMessage("Check your email to confirm your account.");
-      return;
-    }
-
-    window.location.href = "/";
   };
 
   return (
-    <form onSubmit={submit} className="p-6 max-w-md mx-auto">
-      <h1 className="text-xl mb-4">Register</h1>
+    <div className="min-h-screen bg-white">
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.18),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(14,165,233,0.14),transparent_55%)]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-white via-white to-slate-50" />
+      </div>
 
-      <input
-        className="border p-2 w-full mb-3"
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+      <div className="mx-auto flex min-h-screen max-w-6xl items-center justify-center px-4 py-10 sm:px-6">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white/80 p-6 shadow-sm backdrop-blur sm:p-8">
+          <div className="text-xs font-medium text-blue-700">Create account</div>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">Register</h1>
+          <p className="mt-1 text-sm text-slate-600">Start building decks for your modules.</p>
 
-      <input
-        className="border p-2 w-full mb-3"
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+          <form onSubmit={submit} className="mt-6 space-y-4">
+            <div>
+              <label className="text-sm font-medium text-slate-800">Email</label>
+              <input
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="e.g. e0123456@u.nus.edu"
+                required
+              />
+            </div>
 
-      {error && <div className="text-red-600 text-sm">{error}</div>}
-      {message && <div className="text-green-700 text-sm">{message}</div>}
+            <div>
+              <label className="text-sm font-medium text-slate-800">Password</label>
+              <input
+                className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                type="password"
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min 6 characters"
+                required
+              />
+              <div className="mt-1 text-xs text-slate-500">
+                If email confirmation is enabled, use a real email.
+              </div>
+            </div>
 
-      <button className="bg-black text-white p-2 w-full">Register</button>
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
-      <Link to="/login" className="text-sm underline block mt-2">
-        Login
-      </Link>
-    </form>
+            {message && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                {message}
+              </div>
+            )}
+
+            <button
+              disabled={busy}
+              className="w-full rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-60"
+            >
+              {busy ? "Creating…" : "Create account"}
+            </button>
+          </form>
+
+          <div className="mt-6 text-sm text-slate-600">
+            Already have an account?{" "}
+            <Link className="font-semibold text-blue-700 hover:text-blue-800 underline" to="/login">
+              Login
+            </Link>
+          </div>
+
+          <div className="mt-2 text-sm">
+            <Link className="text-slate-600 hover:text-slate-900 underline" to="/">
+              Back to home
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
