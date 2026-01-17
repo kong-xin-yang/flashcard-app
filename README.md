@@ -1,1 +1,1 @@
-"# flashcard-app" 
+"# Vernacular - a language flashcard app" 
