@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "../services/supabase";
 import { useSession } from "../hooks/useSession";
 import { useEffect, useState } from "react";
-import { api } from "../services/client";
+import { api } from "../services/api";
 
 export default function Home() {
   const { session, user, loading: sessionLoading } = useSession();
@@ -67,38 +67,6 @@ export default function Home() {
   return (
     <div className="min-h-screen w-full bg-slate-50 text-slate-900">
       <Header loading={sessionLoading} session={session} email={user?.email} />
-      <header className="sticky top-0 z-10 w-full border-b border-slate-200 bg-white">
-        <div className="flex h-14 w-full items-center justify-between px-6">
-          <Link to="/" className="text-lg font-semibold text-blue-600">
-            Vernacular
-          </Link>
-
-          <nav className="flex items-center gap-3">
-            {loading ? (
-              <span className="text-sm text-slate-500">Loading…</span>
-            ) : session ? (
-              <>
-                <span className="hidden text-sm text-slate-600 sm:inline">
-                  {user?.email}
-                </span>
-                <button
-                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-                  onClick={() => supabase.auth.signOut()}
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="rounded-lg bg-blue-600 px-4 py-1.5 text-sm font-semibold text-white hover:bg-blue-700"
-              >
-                Login
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
 
       <main className="w-full px-6 py-10">
         {/* Not signed in */}
@@ -252,7 +220,7 @@ function EntryModal({ formData, setFormData, isFormValid, isSaving, onClose, onS
   );
 }
 
-// Loading screen
+// Loading screen 
 function LoadingSkeleton() {
   return (
     <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
