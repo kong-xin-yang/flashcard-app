@@ -191,8 +191,8 @@ def create_card(deck_id: int, payload: CardCreate):
 
 @app.post("/users/{user_id}/senses/{sense_id}/sentence_history")
 def create_sentence_history(
-    user_id: int,
-    sense_id: int,
+    user_id: int, # Change from int to str
+    sense_id: int, # Change from int to str
     payload: SentenceHistoryCreate
 ):
     # 1) Validate user exists
