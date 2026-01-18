@@ -189,48 +189,59 @@ def create_card(deck_id: int, payload: CardCreate):
     
     return card_res.data
 
-@app.post("/users/{user_id}/senses/{sense_id}/sentence_history")
+@app.post("/users/{user_id}/senses/{sense_id}/sentence_history") # No trailing slash
+# OR add a second decorator
+@app.post("/users/{user_id}/senses/{sense_id}/sentence_history/")
 def create_sentence_history(
-    user_id: int, # Change from int to str
-    sense_id: int, # Change from int to str
+    user_id: int, 
+    sense_id: int, 
     payload: SentenceHistoryCreate
 ):
-    # 1) Validate user exists
+    # --- 1) Validate user exists ---
+    # We use .execute() to prevent the 500 error crash
     user_res = (
         supabase.table("user_profiles")
         .select("id")
         .eq("id", user_id)
-        .single()
         .execute()
     )
+    
+    # Specific error message to help us debug the 404
     if not user_res.data:
-        raise HTTPException(status_code=404, detail="User not found")
+        print(f"DEBUG: User {user_id} not found in user_profiles table")
+        raise HTTPException(status_code=404, detail=f"User {user_id} not found in database")
 
-    # 2) Fetch sense (we need word + translation for OpenAI)
+    # --- 2) Fetch sense (word + translation) ---
     sense_res = (
         supabase.table("senses")
         .select("id, word, translation")
         .eq("id", sense_id)
-        .single()
         .execute()
     )
+    
     if not sense_res.data:
-        raise HTTPException(status_code=404, detail="Sense not found")
+        print(f"DEBUG: Sense {sense_id} not found in senses table")
+        raise HTTPException(status_code=404, detail=f"Sense {sense_id} not found in database")
 
-    word = sense_res.data["word"]
-    translation = sense_res.data["translation"]
-    past = get_past_sentences(user_id, sense_id)
-    sentence = generate_sentence_with_history(word, translation, payload.language, past)
+    # Safely extract data now that we know it exists
+    sense_data = sense_res.data[0]
+    word = sense_data["word"]
+    translation = sense_data["translation"]
 
-    # 4) Insert sentence_history (ONLY required fields)
+    # --- 3) Generate the sentence via LLM ---
+    try:
+        past = get_past_sentences(user_id, sense_id)
+        sentence = generate_sentence_with_history(word, translation, payload.language, past)
+    except Exception as e:
+        print(f"LLM Error: {e}")
+        raise HTTPException(status_code=500, detail="LLM failed to generate sentence")
+
+    # --- 4) Save to history ---
     ins = supabase.table("sentence_history").insert({
         "user_id": user_id,
         "sense_id": sense_id,
         "sentence": sentence
     }).execute()
-
-    if getattr(ins, "error", None):
-        raise HTTPException(status_code=400, detail=str(ins.error))
 
     return {
         "user_id": user_id,

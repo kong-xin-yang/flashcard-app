@@ -26,42 +26,49 @@ export default function DeckDetail() {
   }, [deckId]);
 
   // 2. THE GENERATOR FUNCTION
-  const generateSentence = async (senseId, index) => {
-  // 1. Convert IDs to Numbers to match FastAPI's "int" requirement
-  const numericUserId = parseInt(user?.id);
-  const numericSenseId = parseInt(senseId);
+  const [sentence, setSentence] = useState("");
+  const [sentenceLoading, setSentenceLoading] = useState(false);
+  const [sentenceError, setSentenceError] = useState("");
 
-  // 2. Safety check: If they are NaN (Not a Number), don't send the request
-  if (isNaN(numericUserId) || isNaN(numericSenseId)) {
-    console.error("❌ IDs are not valid integers:", { userId: user?.id, senseId });
-    return;
-  }
-
+const generateSentence = async (userId, senseId, index) => {
+  setSentenceLoading(true);
   try {
-    // We use the numeric versions in the URL
-    const res = await api.post(`/users/${numericUserId}/senses/${numericSenseId}/sentence_history`, {
-      language: "Spanish"
-    });
+    // Ensure these are integers
+    const uId = parseInt(userId);
+    const sId = parseInt(senseId);
 
-    setCards((prev) =>
-      prev.map((c, i) => (i === index ? { ...c, current_sentence: res.data.sentence } : c))
-    );
+    const res = await api.post(`/users/${uId}/senses/${sId}/sentence_history`, {
+      language: "en", 
+    });
+    
+    setCards(prevCards => {
+      const newCards = [...prevCards];
+      newCards[index] = { ...newCards[index], current_sentence: res.data.sentence };
+      return newCards;
+    });
   } catch (err) {
-    console.error("Auto-gen failed:", err.response?.data || err.message);
+    console.error("Fetch Error:", err.response?.data || err.message);
+  } finally {
+    setSentenceLoading(false);
   }
 };
 
   // 3. THE AUTO-TRIGGER
   // This watches the currentIndex. When you move to a new card, 
   // it checks if a sentence exists. If not, it fires the POST request.
-  useEffect(() => {
-    if (cards.length > 0) {
-      const currentCard = cards[currentIndex];
-      if (!currentCard.current_sentence) {
-        generateSentence(currentCard.sense_id, currentIndex);
-      }
-    }
-  }, [currentIndex, cards, user]);
+useEffect(() => {
+  // Only proceed if we have a user and cards
+  if (!user?.id || cards.length === 0) return;
+
+  const currentCard = cards[currentIndex];
+
+  // Only trigger if no sentence exists AND we aren't already loading one
+  if (currentCard && !currentCard.current_sentence && !sentenceLoading) {
+    generateSentence(user.id, currentCard.sense_id, currentIndex);
+  }
+  // Remove 'cards' and 'sentenceLoading' from dependency array to prevent loops
+  // We only want to trigger this when the USER changes or the INDEX changes
+}, [currentIndex, user?.id]);
 
   if (loading) return <div className="p-10 text-center">Loading cards...</div>;
   if (cards.length === 0) return <div className="p-10 text-center">Empty deck.</div>;
