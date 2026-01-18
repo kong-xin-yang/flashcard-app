@@ -67,10 +67,13 @@ const loadAppData = async () => {
     if (e) e.preventDefault();
     if (!deckData.name.trim() || isSaving) return;
 
+    console.log("Current user profile:", me);
+    console.log("Payload being sent:", deckData);
+
     setIsSaving(true);
     try {
-      // Hits backend: @app.post("/user_profile/{user_id}/decks")
-      const res = await api.post(`/user_profile/${me.user_id}/decks`, deckData);
+      // Hits backend: @app.post("/user_profiles/{user_id}/decks")
+      const res = await api.post(`/user_profiles/${me.user_id}/decks`, deckData);
       const newDeck = Array.isArray(res.data) ? res.data[0] : res.data;
 
       setDecks((prev) => [...prev, newDeck]);
@@ -124,7 +127,7 @@ const loadAppData = async () => {
 
         {!sessionLoading && session && (
           <div className="mx-auto max-w-5xl">
-            <h1 className="text-4xl font-black tracking-tight mb-8">My Vaults</h1>
+            <h1 className="text-4xl font-black tracking-tight mb-8">My Collection</h1>
             
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {/* Existing Decks */}

@@ -9,36 +9,47 @@ export default function Register() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  const BACKEND_URL = "http://127.0.0.1:8000";
+
   const submit = async (e) => {
     e.preventDefault();
     setError("");
     setMessage("");
     setBusy(true);
 
+    const cleanEmail = email.trim().toLowerCase();
+
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: cleanEmail,
         password,
-        options: {
-          emailRedirectTo: window.location.origin + "/login",
-        },
+        options: { emailRedirectTo: window.location.origin + "/login" },
       });
 
-      if (error) {
-        setError(error.message);
+      if (error) { setError(error.message); return; }
+
+      // ✅ call backend to insert into user_profiles table
+      const r = await fetch(`${BACKEND_URL}/user_profiles`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setError(body.detail || "Failed to create user profile");
         return;
       }
 
-      if (!data.session) {
-        setMessage("Check your email to confirm your account, then log in.");
-        return;
-      }
+      console.log("✅ user profile row:", body);
 
+      // ✅ no email confirmation: just go home (or /login)
       window.location.href = "/";
     } finally {
       setBusy(false);
     }
-  };
+    };
+
 
   return (
     <div className="min-h-screen bg-white">

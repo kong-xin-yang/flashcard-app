@@ -129,20 +129,27 @@ def create_lang_profile(user_id: int, payload: LangProfileCreate):
         raise HTTPException(status_code=400, detail=str(res.error))
     return res.data
 
-@app.post("/user_profile/{user_id}/decks")
+@app.post("/user_profiles/{user_id}/decks")
 def create_deck(user_id: int, payload: DeckCreate):
     row = payload.model_dump()
     row["user_id"] = user_id
-    res = supabase.table("decks").insert(row).execute()
     
-    if getattr(res, "error", None):
-        raise HTTPException(status_code=400, detail=str(res.error))
+    # Run the execution
+    try:
+        res = supabase.table("decks").insert(row).execute()
+    except Exception as e:
+        # This catches connection errors or Supabase Auth errors
+        print(f"Supabase Execution Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
+
+    # Check if 'res' actually exists before touching .data
+    if res is None:
+        raise HTTPException(status_code=500, detail="Supabase returned None. Check your Service Role Key.")
     
-    # Return the first item of the list so the frontend gets an object {}
-    # instead of a list [{}]
-    if res.data and len(res.data) > 0:
-        return res.data[0] 
-    return res.data
+    if not res.data:
+        raise HTTPException(status_code=400, detail="No data returned. Check RLS policies.")
+
+    return res.data[0]
 
 @app.post("/decks/{deck_id}/cards")
 def create_card(deck_id: int, payload: CardCreate):
