@@ -13,7 +13,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     # 1 line extra
     allow_credentials=True,
     allow_methods=["*"],
@@ -115,10 +115,34 @@ def get_cards_for_deck(deck_id: int):
 
 @app.post("/user_profiles")
 def create_user(payload: UserProfileCreate):
-    res = supabase.table("user_profiles").insert(payload.model_dump()).execute()
-    if getattr(res, "error", None):
-        raise HTTPException(status_code=400, detail=str(res.error))
-    return res.data
+    email = payload.email.strip().lower()
+
+    # 1) Try get existing
+    existing = (
+        supabase.table("user_profiles")
+        .select("id, email")
+        .eq("email", email)
+        .maybe_single()
+        .execute()
+    )
+    if getattr(existing, "error", None):
+        raise HTTPException(status_code=500, detail=str(existing.error))
+
+    if existing.data:
+        return existing.data  # ✅ return existing row
+
+    # 2) Insert new
+    ins = (
+        supabase.table("user_profiles")
+        .insert({"email": email})
+        .execute()
+    )
+    if getattr(ins, "error", None):
+        raise HTTPException(status_code=400, detail=str(ins.error))
+
+    return ins.data[0] if ins.data else None
+
+
 
 @app.post("/users/{user_id}/lang_profiles")
 def create_lang_profile(user_id: int, payload: LangProfileCreate):

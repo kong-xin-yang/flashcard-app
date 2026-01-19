@@ -5,12 +5,12 @@ import { useSession } from "../hooks/useSession";
 
 export default function DeckDetail() {
   const { deckId } = useParams();
-  const { user } = useSession(); // We need user.id for the backend route
+  const { session, user, profileId } = useSession(); // ✅ profileId = user_profiles.id (int)
+
   const [cards, setCards] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch the cards first
   useEffect(() => {
     const fetchCards = async () => {
       try {
@@ -25,50 +25,44 @@ export default function DeckDetail() {
     fetchCards();
   }, [deckId]);
 
-  // 2. THE GENERATOR FUNCTION
-  const [sentence, setSentence] = useState("");
   const [sentenceLoading, setSentenceLoading] = useState(false);
   const [sentenceError, setSentenceError] = useState("");
 
-const generateSentence = async (userId, senseId, index) => {
-  setSentenceLoading(true);
-  try {
-    // Ensure these are integers
-    const uId = parseInt(userId);
-    const sId = parseInt(senseId);
+  const generateSentence = async (uId, sId, index) => {
+    setSentenceLoading(true);
+    setSentenceError("");
 
-    const res = await api.post(`/users/${uId}/senses/${sId}/sentence_history`, {
-      language: "en", 
-    });
-    
-    setCards(prevCards => {
-      const newCards = [...prevCards];
-      newCards[index] = { ...newCards[index], current_sentence: res.data.sentence };
-      return newCards;
-    });
-  } catch (err) {
-    console.error("Fetch Error:", err.response?.data || err.message);
-  } finally {
-    setSentenceLoading(false);
-  }
-};
+    try {
+      const res = await api.post(`/users/${uId}/senses/${sId}/sentence_history`, {
+        language: "en",
+      });
 
-  // 3. THE AUTO-TRIGGER
-  // This watches the currentIndex. When you move to a new card, 
-  // it checks if a sentence exists. If not, it fires the POST request.
-useEffect(() => {
-  // Only proceed if we have a user and cards
-  if (!user?.id || cards.length === 0) return;
+      setCards((prev) => {
+        const next = [...prev];
+        next[index] = { ...next[index], current_sentence: res.data.sentence };
+        return next;
+      });
+    } catch (err) {
+      console.error("Fetch Error:", err.response?.data || err.message);
+      setSentenceError(err.response?.data?.detail || "Failed to generate sentence");
+    } finally {
+      setSentenceLoading(false);
+    }
+  };
 
-  const currentCard = cards[currentIndex];
+  useEffect(() => {
+    if (!profileId || cards.length === 0) return;
 
-  // Only trigger if no sentence exists AND we aren't already loading one
-  if (currentCard && !currentCard.current_sentence && !sentenceLoading) {
-    generateSentence(user.id, currentCard.sense_id, currentIndex);
-  }
-  // Remove 'cards' and 'sentenceLoading' from dependency array to prevent loops
-  // We only want to trigger this when the USER changes or the INDEX changes
-}, [currentIndex, user?.id]);
+    const currentCard = cards[currentIndex];
+    const senseId = currentCard?.sense_id ?? currentCard?.senses?.id;
+    if (!senseId) return;
+
+    if (!currentCard.current_sentence && !sentenceLoading) {
+      generateSentence(profileId, senseId, currentIndex);
+    }
+  }, [profileId, cards, currentIndex]);
+
+
 
   if (loading) return <div className="p-10 text-center">Loading cards...</div>;
   if (cards.length === 0) return <div className="p-10 text-center">Empty deck.</div>;

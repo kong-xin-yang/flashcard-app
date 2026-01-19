@@ -41,7 +41,7 @@ const loadAppData = async () => {
         const createRes = await api.post("/user_profiles", { email: session.user.email });
         
         // Supabase returns an array, so we get the ID from the first element
-        user_id = createRes.data[0].id; 
+        user_id = createRes.data.id; 
       } else {
         throw err;
       }
